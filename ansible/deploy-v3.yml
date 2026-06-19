@@ -31,6 +31,9 @@
         version: "{{ repo_branch }}"
         force: yes
 
+    - name: Применить обработчики (остановить Nginx) перед запуском Docker
+      meta: flush_handlers
+
     - name: 4. Запустить сборку образов и поднять контейнеры через Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ repo_root }}"
