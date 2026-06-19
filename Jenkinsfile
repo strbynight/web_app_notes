@@ -13,11 +13,48 @@ pipeline {
             }
         }
 
+        stage('Pre-Build: Unit Tests') {
+            steps {
+                echo 'Запуск изолированных юнит-тестов исходного кода Python...'
+                sh '''
+                    python3 -m venv test_venv
+                    ./test_venv/bin/pip install -r backend/requirements.txt
+                    ./test_venv/bin/python backend/test_app.py
+                '''
+            }
+        }
+
         stage('Docker Deploy') {
             steps {
-                echo 'Перезапускаем контейнеры команды project_05...'
+                echo 'Юнит-тесты успешно пройдены. Запуск сборки и деплоя контейнеров...'
                 sh 'docker compose -p project_05 down'
                 sh 'docker compose -p project_05 up -d --build'
+            }
+        }
+
+        stage('Post-Build: Smoke Tests') {
+            steps {
+                echo 'Контейнеры развернуты. Ожидание инициализации веб-серверов...'
+                sleep 5
+                echo 'Тестирование доступности статического фронтенда Nginx на внешнем порту...'
+                sh '''
+                    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8005/)
+                    echo "Frontend HTTP Status Code: $STATUS_CODE"
+                    if [ "$STATUS_CODE" -ne 200 ]; then
+                        echo "АВАРИЯ: Фронтенд вернул код $STATUS_CODE вместо ожидаемого 200!"
+                        exit 1
+                    fi
+                '''
+                echo 'Тестирование доступности эндпоинта здоровья через Nginx...'
+                sh '''
+                    API_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8005/api/health)
+                    echo "Backend API HTTP Status Code: $API_CODE"
+                    if [ "$API_CODE" -ne 200 ]; then
+                        echo "АВАРИЯ: Эндпоинт здоровья недоступен через Nginx (Код: $API_CODE)!"
+                        exit 1
+                    fi
+                    echo 'Все автоматические проверки качества успешно завершены! Сборка валидна.'
+                '''
             }
         }
     }
