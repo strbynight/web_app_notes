@@ -24,6 +24,12 @@
         state: absent
       notify: Restart Host Nginx
 
+    - name: 2.5. Остановить Nginx на хосте (если он ещё работает)
+      ansible.builtin.systemd:
+        name: nginx
+        state: stopped
+      failed_when: false
+
     - name: 3. Синхронизировать свежий код и Docker-файлы из репозитория GitHub
       ansible.builtin.git:
         repo: "{{ repo_url }}"
