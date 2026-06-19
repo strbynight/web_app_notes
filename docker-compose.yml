@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: project_05-db
+    environment:
+      POSTGRES_DB: "notes_db_05"
+      POSTGRES_USER: "notes_user_05"
+      POSTGRES_PASSWORD: "password123"
+    volumes:
+      - pgdata_05:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5405:5432"
+    networks:
+      - project_05-network
+
+  backend:
+    build:
+      context: ./backend
+    container_name: project_05-backend
+    environment:
+      DB_HOST: db
+      DB_NAME: "notes_db_05"
+      DB_USER: "notes_user_05"
+      DB_PASS: "password123"
+    ports:
+      - "5005:5000"
+    depends_on:
+      - db
+    networks:
+      - project_05-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: project_05-nginx
+    ports:
+      - "8005:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - project_05-network
+
+volumes:
+  pgdata_05:
+    name: pgdata_05
+
+networks:
+  project_05-network:
+    name: project_05-network
