@@ -34,7 +34,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/notes"]
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:5000/api/notes || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5
